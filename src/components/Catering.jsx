@@ -3,8 +3,14 @@ import { useParams } from "react-router-dom";
 
 const Catering = () => {
   const { restaurantId } = useParams();
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [restaurant, setRestaurant] = useState({ menuItem: [] });
   const [menuItems, setMenuItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [fetchError, setFetchError] = useState("");
+  const [menuLoading, setMenuLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -14,54 +20,50 @@ const Catering = () => {
     guests: "",
     specialRequests: "",
   });
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [menuLoading, setMenuLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  // Fetch menu items for this restaurant
   useEffect(() => {
-    const fetchMenu = async () => {
+    const fetchRestaurant = async () => {
+      setMenuLoading(true); // start menu loading
       try {
-        setMenuLoading(true);
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/restaurants/${restaurantId}/menu`
-        );
-        const data = await res.json();
-        setMenuItems(data);
+        const res = await fetch(`${API_URL}/restaurants/${restaurantId}`);
+        const restaurantData = await res.json();
+
+        if (!res.ok) {
+          console.error("Restaurant not found");
+          setFetchError("Restaurant not found");
+        } else {
+          setRestaurant(restaurantData);
+          setMenuItems(restaurantData.menuItem || []);
+        }
       } catch (err) {
-        console.error("Error fetching menu items:", err);
-        setMessage("Error loading menu. Please try again.");
+        console.error("Failed to fetch restaurant data:", err);
+        setFetchError("Failed to fetch restaurant data");
       } finally {
+        setLoading(false);
         setMenuLoading(false);
       }
     };
-    fetchMenu();
-  }, [restaurantId]);
 
-  // Calculate total price
-  const calculateTotal = () => {
-    return selectedItems.reduce((total, selectedItem) => {
-      const menuItem = menuItems.find((item) => item._id === selectedItem.item);
+    fetchRestaurant();
+  }, [restaurantId, API_URL]);
+
+  const calculateTotal = () =>
+    selectedItems.reduce((total, selectedItem) => {
+      const menuItem = menuItems.find((i) => i._id === selectedItem.item);
       return total + (menuItem ? menuItem.price * selectedItem.quantity : 0);
     }, 0);
-  };
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
+    if (errors[name]) setErrors({ ...errors, [name]: "" });
   };
 
-  // Validate form
   const validateForm = () => {
     const newErrors = {};
-
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email.match(/^\S+@\S+\.\S+$/))
       newErrors.email = "Valid email is required";
@@ -71,12 +73,13 @@ const Catering = () => {
       newErrors.eventDate = "Event date must be in the future";
     if (!formData.guests || formData.guests < 1)
       newErrors.guests = "Number of guests must be at least 1";
+    if (selectedItems.length === 0)
+      newErrors.menuItems = "Please select at least one menu item";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Toggle menu item selection
   const toggleItem = (item) => {
     const exists = selectedItems.find((i) => i.item === item._id);
     if (exists) {
@@ -84,37 +87,36 @@ const Catering = () => {
     } else {
       setSelectedItems([
         ...selectedItems,
-        { item: item._id, quantity: 1, name: item.name, price: item.price },
+        {
+          item: item._id,
+          quantity: 1,
+          name: item.name,
+          price: item.price,
+          restaurant: restaurantId,
+        },
       ]);
+    }
+    if (errors.menuItems) {
+      setErrors({ ...errors, menuItems: "" });
     }
   };
 
-  // Update quantity of selected item
   const updateQuantity = (itemId, quantity) => {
     if (quantity < 1) return;
     setSelectedItems(
-      selectedItems.map((i) =>
-        i.item === itemId ? { ...i, quantity: quantity } : i
-      )
+      selectedItems.map((i) => (i.item === itemId ? { ...i, quantity } : i))
     );
   };
 
-  // Remove selected item
   const removeItem = (itemId) => {
     setSelectedItems(selectedItems.filter((i) => i.item !== itemId));
   };
 
-  // Submit catering order
+  // Form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) {
       setMessage("Please fix the errors above");
-      return;
-    }
-
-    if (selectedItems.length === 0) {
-      setMessage("Please select at least one menu item.");
       return;
     }
 
@@ -122,12 +124,15 @@ const Catering = () => {
     const payload = {
       ...formData,
       restaurant: restaurantId,
+      restaurantName: restaurant?.name,
       menuItems: selectedItems,
       totalPrice: calculateTotal(),
     };
 
+    console.log("Submitting payload:", payload);
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/catering`, {
+      const response = await fetch(`${API_URL}/catering`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -135,7 +140,9 @@ const Catering = () => {
 
       if (!response.ok) throw new Error("Failed to submit order");
 
+      const result = await response.json();
       setMessage("Catering order submitted successfully!");
+
       setFormData({
         name: "",
         email: "",
@@ -148,7 +155,7 @@ const Catering = () => {
       setSelectedItems([]);
       setErrors({});
     } catch (err) {
-      console.error(err);
+      console.error("Submission error:", err);
       setMessage("Error submitting order. Please try again.");
     } finally {
       setLoading(false);
@@ -158,6 +165,24 @@ const Catering = () => {
   return (
     <div className="mt-12 max-w-4xl mx-auto py-12 px-6">
       <h1 className="text-3xl font-bold mb-6">Catering Orders</h1>
+
+      {/* Display restaurant info if available */}
+      {restaurant && (
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+          <h2 className="text-xl font-semibold text-blue-800">
+            Ordering from: {restaurant.name}
+          </h2>
+          {restaurant.description && (
+            <p className="text-blue-600 mt-2">{restaurant.description}</p>
+          )}
+        </div>
+      )}
+
+      {fetchError && (
+        <p className="mb-4 p-3 rounded bg-red-100 text-red-700 border border-red-300">
+          {fetchError}
+        </p>
+      )}
 
       {message && (
         <p
@@ -207,7 +232,6 @@ const Catering = () => {
                 <p className="text-red-500 text-sm mt-1">{errors.email}</p>
               )}
             </div>
-
             <div>
               <input
                 name="phone"
@@ -240,6 +264,7 @@ const Catering = () => {
               )}
             </div>
 
+            {/* Event Type */}
             <input
               name="eventType"
               value={formData.eventType}
@@ -248,6 +273,7 @@ const Catering = () => {
               className="w-full border border-gray-300 p-3 rounded"
             />
 
+            {/* Guests */}
             <div>
               <input
                 name="guests"
@@ -266,6 +292,7 @@ const Catering = () => {
               )}
             </div>
 
+            {/* Special Requests */}
             <textarea
               name="specialRequests"
               value={formData.specialRequests}
@@ -274,6 +301,19 @@ const Catering = () => {
               rows="4"
               className="w-full border border-gray-300 p-3 rounded"
             />
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 px-4 rounded font-medium ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition-colors`}
+            >
+              {loading ? "Submitting Order..." : "Submit Catering Order"}
+            </button>
           </form>
         </div>
 
@@ -287,13 +327,19 @@ const Catering = () => {
             </div>
           ) : (
             <>
-              {/* Available Menu Items */}
               <div className="mb-6">
                 <h3 className="font-medium mb-3">Available Items</h3>
+
+                {errors.menuItems && (
+                  <p className="text-red-500 text-sm mt-1 mb-3">
+                    {errors.menuItems}
+                  </p>
+                )}
+
                 <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded p-3">
                   {menuItems.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">
-                      No menu items available
+                      No menu items available for this restaurant
                     </p>
                   ) : (
                     menuItems.map((item) => (
@@ -310,8 +356,14 @@ const Catering = () => {
                             )}
                             className="mr-3 h-4 w-4"
                           />
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-20 h-20 object-cover rounded"
+                          />
+
                           <span className="flex-1">
-                            {item.name} - ${item.price.toFixed(2)}
+                            {item.name} - ${item.price?.toFixed(2) || "0.00"}
                           </span>
                         </div>
                         {selectedItems.some((i) => i.item === item._id) && (
@@ -326,7 +378,7 @@ const Catering = () => {
                               onChange={(e) =>
                                 updateQuantity(
                                   item._id,
-                                  parseInt(e.target.value)
+                                  parseInt(e.target.value) || 1
                                 )
                               }
                               className="w-16 border border-gray-300 p-1 rounded text-center"
@@ -339,7 +391,6 @@ const Catering = () => {
                 </div>
               </div>
 
-              {/* Selected Items Summary */}
               {selectedItems.length > 0 && (
                 <div className="border border-gray-200 rounded p-4 mb-6">
                   <h3 className="font-medium mb-3">Selected Items</h3>
@@ -361,7 +412,7 @@ const Catering = () => {
                             <span className="mr-3">
                               $
                               {(
-                                (selectedItem.price || item?.price || 0) *
+                                (item?.price || selectedItem.price) *
                                 selectedItem.quantity
                               ).toFixed(2)}
                             </span>
@@ -385,19 +436,6 @@ const Catering = () => {
                   </div>
                 </div>
               )}
-
-              <button
-                type="submit"
-                onClick={handleSubmit}
-                disabled={loading || selectedItems.length === 0}
-                className={`w-full py-3 px-4 rounded font-medium ${
-                  loading || selectedItems.length === 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-500 hover:bg-green-600"
-                } text-white transition-colors`}
-              >
-                {loading ? "Submitting Order..." : "Submit Catering Order"}
-              </button>
             </>
           )}
         </div>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 
 const MenuPage = () => {
-  const { id } = useParams();
+  const { id: restaurantId } = useParams(); 
   const navigate = useNavigate();
-  const [restaurant, setRestaurant] = useState({ menu: [] }); // ✅ Always has a menu array
+  const [restaurant, setRestaurant] = useState({ menuItem: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -13,13 +13,12 @@ const MenuPage = () => {
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
-        const res = await fetch(`${API_URL}/restaurants/${id}`);
+        const res = await fetch(`${API_URL}/restaurants/${restaurantId}`); 
         const data = await res.json();
 
         if (!res.ok) {
           setError(data.message || "Restaurant not found");
         } else {
-          // ✅ Ensure menu exists (fallback to empty array)
           setRestaurant({ ...data, menuItem: data.menuItem || [] });
         }
       } catch (err) {
@@ -31,7 +30,7 @@ const MenuPage = () => {
     };
 
     fetchRestaurant();
-  }, [id, API_URL]);
+  }, [restaurantId, API_URL]);
 
   const handleAddToCart = async (item) => {
     const token = localStorage.getItem("token");
@@ -56,10 +55,8 @@ const MenuPage = () => {
       });
 
       const result = await response.json();
-
-      if (!result.success) {
+      if (!result.success)
         throw new Error(result.message || "Failed to add item to cart");
-      }
 
       alert(`${item.name} added to your cart!`);
     } catch (err) {
@@ -74,7 +71,6 @@ const MenuPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-5">
-      {/* About Section */}
       <section className="bg-white py-12 rounded-lg shadow mb-10 text-center">
         <h2 className="text-3xl font-bold text-yellow-600 mb-4">
           About {restaurant.name}
@@ -84,13 +80,21 @@ const MenuPage = () => {
         </p>
       </section>
 
-      {/* Menu Section */}
+      <div className="mb-6">
+        <Link
+          to={`/restaurant/${restaurant._id}/catering`} 
+          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition duration-300"
+        >
+          Go to Catering
+        </Link>
+      </div>
+
       <h2 className="text-3xl font-bold text-center mb-10">Menu</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
         {restaurant.menuItem.length > 0 ? (
           restaurant.menuItem.map((item) => (
             <div
-              key={item._id || item.id}
+              key={item._id}
               className="bg-white rounded-lg shadow-lg overflow-hidden hover:scale-105 transform transition duration-300"
             >
               <img

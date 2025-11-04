@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL; // Make sure this is defined in your .env
+const API_URL = import.meta.env.VITE_API_URL; 
 
 const Contact = () => {
   const [form, setForm] = useState({ name: "", email: "", message: "" });

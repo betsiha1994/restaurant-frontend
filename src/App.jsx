@@ -21,7 +21,11 @@ import About from "./components/About";
 import StoryPage from "./components/StoryPage";
 import Footer from "./components/Footer";
 import Catering from "./components/Catering";
-// import PrivacyPolicy from "./components/PrivacyPolicy";
+import CateringReport from "./components/CateringReport";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import TermsOfServices from "./components/TermsOfServices";
+import RefundPolicy from "./components/RefundPolicy";
+import Accessibility from "./components/Accessibility";
 
 function App() {
   return (
@@ -58,8 +62,17 @@ function App() {
         <Route path="/admin-management" element={<AdminManegement />} />
         <Route path="/admin/categories" element={<CategoryPage />} />
         <Route path="/story" element={<StoryPage />} />
-        <Route path="/catering" element={<Catering />} />
-        {/* <Route path="/privacy-policy" element={<PrivacyPolicy />} /> */}
+        <Route
+          path="/restaurant/:restaurantId/catering"
+          element={<Catering />}
+        />
+
+        <Route path="catering-report" element={<CateringReport />} />
+
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfServices />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/accessibility" element={<Accessibility />} />
       </Routes>
     </Router>
   );

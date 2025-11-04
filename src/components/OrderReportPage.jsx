@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -247,6 +248,12 @@ const OrderReportPage = () => {
             .toFixed(2)}
         </p>
       </div>
+      <Link
+        to="/catering-report"
+        className="text-gray-700 hover:text-green-600 font-medium"
+      >
+        Catering Report
+      </Link>
     </div>
   );
 };
