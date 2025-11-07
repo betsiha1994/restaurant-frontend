@@ -116,7 +116,7 @@ const AboutSection = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
               <div className="transform hover:scale-105 transition-transform duration-300">
                 <div className="text-4xl font-bold mb-2 bg-white bg-opacity-20 rounded-full w-20 h-20 flex items-center justify-center mx-auto">
-                  120+
+                  5+
                 </div>
                 <p className="text-blue-100 font-semibold">
                   Premium Restaurants

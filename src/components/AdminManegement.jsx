@@ -30,7 +30,7 @@ const AdminPage = () => {
 
       <main className="flex-1 p-8">
         <h1 className="text-3xl font-semibold text-gray-800 mb-6">
-          Welcome, Admin 
+          Welcome, Admin
         </h1>
         <Outlet />
       </main>

@@ -26,6 +26,8 @@ import PrivacyPolicy from "./components/PrivacyPolicy";
 import TermsOfServices from "./components/TermsOfServices";
 import RefundPolicy from "./components/RefundPolicy";
 import Accessibility from "./components/Accessibility";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword.jsx";
 
 function App() {
   return (
@@ -73,6 +75,8 @@ function App() {
         <Route path="/terms-of-service" element={<TermsOfServices />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/accessibility" element={<Accessibility />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </Router>
   );
